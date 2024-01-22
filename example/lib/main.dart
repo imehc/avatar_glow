@@ -43,6 +43,20 @@ class _HomePageState extends State<HomePage> {
               children: [
                 AvatarGlow(
                   animate: _animate,
+                  paintingStyle: PaintingStyle.stroke,
+                  strokeWidth: 2,
+                  linearGradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withOpacity(0.0),
+                      Colors.white.withOpacity(0.6),
+                      Colors.white,
+                      Colors.white.withOpacity(0.6),
+                      Colors.white.withOpacity(0.0),
+                    ],
+                    // stops: const [0.2, 0.4, 0.5, 0.6, 0.8],
+                  ),
                   child: Material(
                     elevation: 8.0,
                     shape: const CircleBorder(),

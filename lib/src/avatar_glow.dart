@@ -19,6 +19,9 @@ class AvatarGlow extends StatefulWidget {
     this.repeat = true,
     this.curve = Curves.fastOutSlowIn,
     this.glowRadiusFactor = 0.7,
+    this.strokeWidth,
+    this.paintingStyle,
+    this.linearGradient,
   })  : assert(
           glowShape != BoxShape.circle || glowBorderRadius == null,
           'Cannot specify a border radius if the shape is a circle.',
@@ -57,6 +60,15 @@ class AvatarGlow extends StatefulWidget {
 
   /// The factor that determines the size of each glow effect relative to the original size.
   final double glowRadiusFactor;
+
+  /// How wide to make edges drawn when [style] is set to [PaintingStyle.stroke]. The width is given in logical pixels measured in the direction orthogonal to the direction of the path.
+  final double? strokeWidth;
+
+  /// Whether to paint inside shapes, the edges of shapes, or both.
+  final PaintingStyle? paintingStyle;
+
+  /// A 2D gradient.
+  final LinearGradient? linearGradient;
 
   @override
   State<AvatarGlow> createState() => _AvatarGlowState();
@@ -147,6 +159,9 @@ class _AvatarGlowState extends State<AvatarGlow>
           ..curve = widget.curve
           ..opacityTween = _opacityTween
           ..glowCount = widget.glowCount
+          ..strokeWidth = widget.strokeWidth
+          ..paintingStyle = widget.paintingStyle
+          ..linearGradient = widget.linearGradient
           ..glowDecoration = BoxDecoration(
             color: widget.glowColor,
             shape: widget.glowShape,
@@ -196,6 +211,35 @@ class _GlowPainter extends ChangeNotifier implements CustomPainter {
     }
   }
 
+  double? get strokeWidth => _strokeWidth;
+  double? _strokeWidth;
+
+  set strokeWidth(double? value) {
+    if (value != null && _strokeWidth != value) {
+      _strokeWidth ??= value;
+      notifyListeners();
+    }
+  }
+
+  PaintingStyle? get paintingStyle => _paintingStyle;
+  PaintingStyle? _paintingStyle;
+
+  set paintingStyle(PaintingStyle? value) {
+    if (value != null && _paintingStyle != value) {
+      _paintingStyle ??= value;
+      notifyListeners();
+    }
+  }
+
+  LinearGradient? get linearGradient => _linearGradient;
+  LinearGradient? _linearGradient;
+
+  set linearGradient(LinearGradient? value) {
+    if (value != null && _linearGradient != value) {
+      _linearGradient ??= value;
+    }
+  }
+
   BoxDecoration get glowDecoration => _glowDecoration!;
   BoxDecoration? _glowDecoration;
 
@@ -222,12 +266,24 @@ class _GlowPainter extends ChangeNotifier implements CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    double radius =
+        math.min(size.width, size.height) / 2 - (strokeWidth ?? 0) / 2;
+    Offset center = Offset(size.width / 2, size.height / 2);
+
     final glowColor = glowDecoration.color!;
     final opacity = opacityTween.evaluate(progress);
 
     final paint = Paint()
       ..color = glowColor.withOpacity(opacity)
-      ..style = PaintingStyle.fill;
+      ..shader = _linearGradient?.createShader(
+        Rect.fromCircle(center: center, radius: radius),
+      );
+    if (strokeWidth != null) {
+      paint.strokeWidth = strokeWidth!;
+    }
+    if (paintingStyle != null) {
+      paint.style = paintingStyle!;
+    }
 
     final glowSize = math.min(size.width, size.height);
     final glowRadius = glowSize / 2;
@@ -240,7 +296,7 @@ class _GlowPainter extends ChangeNotifier implements CustomPainter {
     // We need to draw the glows from the smallest to the largest.
     for (int i = 1; i <= glowCount; i++) {
       final currentRadius =
-          glowRadius + glowRadius * glowRadiusFactor * i * currentProgress;
+          radius + glowRadius * glowRadiusFactor * i * currentProgress;
 
       final currentRect = Rect.fromCircle(
         center: size.center(Offset.zero),
